@@ -2,7 +2,7 @@
  * 😵‍💫 This file has been vibe coded 😵‍💫
  */
 
-import type { Param } from "./param.ts";
+import type { AnyParam } from "./param.ts";
 import type {
   AnyRoute,
   Help,
@@ -107,9 +107,9 @@ export function printErrors(
 
 type Row = readonly [label: string, description?: string];
 
-function params(route: AnyRoute): Param<string, unknown>[] {
+function params(route: AnyRoute): AnyParam[] {
   return route.phases.flatMap((phase) =>
-    Object.values(phase.model.params) as Param<string, unknown>[]
+    Object.values(phase.model.params) as AnyParam[]
   );
 }
 

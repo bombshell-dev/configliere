@@ -4,6 +4,7 @@ import { type } from "arktype";
 import * as z from "zod";
 import { dynamic } from "../lib/dynamic.ts";
 import { extend } from "../lib/extend.ts";
+import type { AnyParam, Param } from "../lib/param.ts";
 import { brand, type IdentityElement } from "../lib/pipeline.ts";
 import { routes } from "../lib/route.ts";
 import {
@@ -12,13 +13,25 @@ import {
   multiple,
   name,
   option,
-  type Param,
+  param,
   parse,
   type ReadCLI,
   schema,
 } from "../mod.ts";
 
 describe("multiple()", () => {
+  it("changes parameter cardinality without changing its model", () => {
+    let result = param(
+      name("config"),
+      schema(z.array(z.string())),
+      multiple(),
+    );
+
+    expectType<
+      Equal<typeof result, Param<"config", string[], "many">>
+    >(true);
+  });
+
   it("preserves the schema output as the model type", () => {
     let app = command(
       name("simulacrum"),
@@ -160,6 +173,30 @@ describe("multiple()", () => {
       ok: true,
       method: "execute",
       model: { config: ["environment.yml"] },
+    });
+  });
+
+  it("treats an environment string as one occurrence without splitting it", () => {
+    let app = command(
+      name("simulacrum"),
+      option(name("config"), multiple(), schema(z.array(z.string()))),
+    );
+    let result = parse(app, {
+      argv: [],
+      envs: [{
+        name: "process",
+        value: { CONFIG: "one.yml,two.yml" },
+      }],
+      values: [{
+        name: "settings",
+        value: { config: ["fallback-one.yml", "fallback-two.yml"] },
+      }],
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      method: "execute",
+      model: { config: ["one.yml,two.yml"] },
     });
   });
 
@@ -343,7 +380,7 @@ describe("multiple()", () => {
   });
 });
 
-function custom(flag: string): IdentityElement<Param<string, unknown>> {
+function custom(flag: string): IdentityElement<AnyParam> {
   const read: ReadCLI = (tokens) => {
     let claim = tokens.claimPair((name, value) =>
       name.type === "flag" && name.text === flag && value.type === "word"
@@ -369,17 +406,17 @@ function custom(flag: string): IdentityElement<Param<string, unknown>> {
       };
   };
 
-  return brand<IdentityElement<Param<string, unknown>>>(
-    (param: Param<string, unknown>) => ({
+  return brand<IdentityElement<AnyParam>>(
+    (param: AnyParam) => ({
       ...param,
       cli: { read },
     }),
   );
 }
 
-function deprecated(): IdentityElement<Param<string, unknown>> {
-  return brand<IdentityElement<Param<string, unknown>>>(
-    (param: Param<string, unknown>) => {
+function deprecated(): IdentityElement<AnyParam> {
+  return brand<IdentityElement<AnyParam>>(
+    (param: AnyParam) => {
       let read = param.cli.read;
       return {
         ...param,

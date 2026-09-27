@@ -11,25 +11,37 @@ import {
 import type { CLIBinding } from "./read.ts";
 import type { Definition, OutputOf, Schema } from "./types.ts";
 
-export interface Param<K extends string, T> extends Definition<K> {
+export interface Param<K extends string, T, C extends Cardinality>
+  extends Definition<K> {
   schema: Schema<T>;
+  cardinality: C;
   cli: CLIBinding;
-  decode: Decoder;
+  decode: Decoder<Representation<C>, Decoded<C>>;
   env?: string;
 }
 
+export type Cardinality = "one" | "many";
+
+export type AnyParam =
+  | Param<string, unknown, "one">
+  | Param<string, unknown, "many">;
+
 export type ParamModel<K extends string, V> = ModelPatch<{ [P in K]: V }>;
+
+export type Representation<C extends Cardinality> = C extends "many" ? string[]
+  : string;
 
 export function param<
   const K extends string,
   const E extends readonly Unary[],
 >(
   start: Definition<K>,
-  ...elements: E & Check<Param<K, unknown>, E>
-): Fold<Param<K, unknown>, E> {
-  let zero: Param<K, unknown> = {
+  ...elements: E & Check<ParamZero<K>, E>
+): Fold<ParamZero<K>, E> {
+  let zero: ParamZero<K> = {
     ...start,
     schema: unknown,
+    cardinality: "one",
     cli: {
       read(tokens) {
         let claim = tokens.claimAll(() => false);
@@ -49,14 +61,14 @@ export function param<
   return elements.reduce<unknown>(
     (value, element) => element(value as never),
     zero,
-  ) as Fold<Param<K, unknown>, E>;
+  ) as Fold<ParamZero<K>, E>;
 }
 
 export function schema<S extends Schema>(
   schema: S,
 ): TransformElement<SchemaTransform<OutputOf<S>>> {
   return mark<SchemaTransform<OutputOf<S>>>(
-    (param: Param<string, unknown>) => ({
+    (param: AnyParam) => ({
       ...param,
       schema,
     }),
@@ -64,9 +76,9 @@ export function schema<S extends Schema>(
 }
 
 interface SchemaTransform<Output> extends Transform {
-  readonly input: Param<string, unknown>;
-  readonly output: this["input"] extends Param<infer N, unknown>
-    ? Param<N, Output>
+  readonly input: AnyParam;
+  readonly output: this["input"] extends Param<infer N, unknown, infer C>
+    ? Param<N, Output, C>
     : never;
 }
 
@@ -77,3 +89,8 @@ const unknown: Schema<unknown> = {
     validate: (value) => ({ value }),
   },
 };
+
+type ParamZero<K extends string> = Param<K, unknown, "one">;
+
+type Decoded<C extends Cardinality> = C extends "many" ? unknown[]
+  : unknown;

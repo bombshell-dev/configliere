@@ -1,7 +1,7 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { EnvSource } from "./env.ts";
 import type { Literal } from "./tokenize.ts";
-import type { Param } from "./param.ts";
+import type { AnyParam } from "./param.ts";
 import type { Result } from "./result.ts";
 import type { ValueSource } from "./values.ts";
 
@@ -74,7 +74,7 @@ export type Done<
   readonly envs: readonly EnvSource[];
 };
 
-export type Params = Readonly<Record<string, Param<string, unknown>>>;
+export type Params = Readonly<Record<string, AnyParam>>;
 
 export interface ParseIncrement<
   R extends AnyRoute,

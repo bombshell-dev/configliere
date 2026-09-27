@@ -1,4 +1,4 @@
-import { type Param, param, type ParamModel } from "./param.ts";
+import { type AnyParam, type Param, param, type ParamModel } from "./param.ts";
 import {
   brand,
   type Check,
@@ -15,14 +15,14 @@ export function argument<
   const E extends readonly Unary[],
 >(
   named: Definition<N>,
-  ...elements: E & Check<Param<N, unknown>, E>
-): ElementOf<N, Fold<Param<N, unknown>, E>> {
+  ...elements: E & Check<Zero<N>, E>
+): ElementOf<N, Fold<Zero<N>, E>> {
   const added = elements.reduce<unknown>(
     (value, element) => element(value as never),
     param(named, positional),
-  ) as Param<string, unknown>;
+  ) as AnyParam;
 
-  return brand<ElementOf<N, Fold<Param<N, unknown>, E>>>(
+  return brand<ElementOf<N, Fold<Zero<N>, E>>>(
     (route: AnyRoute) => {
       let phases = [...route.phases];
       let phase = phases.pop()!;
@@ -51,13 +51,13 @@ export function argument<
   );
 }
 
-type ValueOf<P> = P extends Param<string, infer T> ? T : never;
+type Zero<N extends string> = Param<N, unknown, "one">;
 
-type ElementOf<N extends string, P> = P extends Param<N, unknown>
-  ? ModelElement<ParamModel<N, ValueOf<P>>>
+type ElementOf<N extends string, P> = P extends
+  Param<N, infer Model, infer _Cardinality> ? ModelElement<ParamModel<N, Model>>
   : never;
 
-function positional<P extends Param<string, unknown>>(param: P): P {
+function positional<P extends AnyParam>(param: P): P {
   return {
     ...param,
     cli: {
