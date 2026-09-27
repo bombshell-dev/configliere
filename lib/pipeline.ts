@@ -268,7 +268,7 @@ type Apply<S, D extends Delta> = Delta extends D ? Conservative<S>
   : D extends Batch<infer E> ? Fold<S, E>
   : D extends Dynamic<infer Requirement, infer E>
     ? S extends AnyRoute
-      ? Apply<Seed<S>, DeltaOf<E>> extends infer After extends AnyRoute ? Route<
+      ? DynamicAfter<Seed<S>, E> extends infer After extends AnyRoute ? Route<
           After["name"],
           MethodsOf<After>,
           ConjoinPhases<S, After, Requirement>
@@ -280,6 +280,14 @@ type Apply<S, D extends Delta> = Delta extends D ? Conservative<S>
   : never;
 
 type DeltaOf<E extends AnyElement> = E[typeof operation];
+
+type DynamicAfter<
+  S extends AnyRoute,
+  E extends AnyElement,
+> = DeltaOf<E> extends Batch<infer Elements>
+  ? number extends Elements["length"] ? S
+  : Apply<S, DeltaOf<E>>
+  : Apply<S, DeltaOf<E>>;
 
 type IsUnion<T, Whole = T> = T extends unknown ? [Whole] extends [T] ? false
   : true

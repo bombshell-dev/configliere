@@ -202,6 +202,10 @@ describe("dynamic()", () => {
   });
 
   it("preserves the resume boundary for runtime-sized extensions", () => {
+    let serve = command(
+      name("serve"),
+      option(name("port"), schema(type("number"))),
+    );
     let app = command(
       name("xmd"),
       option(name("path"), schema(type("string"))),
@@ -213,6 +217,7 @@ describe("dynamic()", () => {
         )
       ),
       option(name("raw"), schema(type("string | undefined"))),
+      routes(serve),
     );
 
     expectType<Equal<RequirementOf<typeof app>, readonly string[]>>(true);
@@ -225,6 +230,7 @@ describe("dynamic()", () => {
     type Continued = ModelOf<ContinuationOf<typeof app>>;
     expectType<Equal<Continued["path"], string>>(true);
     expectType<Equal<Continued["raw"], string | undefined>>(true);
+    expectType<Equal<ModelOf<typeof app, "/serve">, { port: number }>>(true);
 
     let first = parse(app, {
       argv: ["--path", "doc.md", "--author", "Ada", "--raw", "true"],
@@ -236,8 +242,8 @@ describe("dynamic()", () => {
       ok: true,
       model: { path: "doc.md", author: "Ada", raw: "true" },
     });
-    if (!result.ok || result.method !== "execute") {
-      throw new Error("expected execute result");
+    if (!result.ok || result.method !== "execute" || result.route !== "/") {
+      throw new Error("expected root execute result");
     }
     expectType<
       Equal<typeof result.model, {
