@@ -12,6 +12,7 @@ export { env, withEnvs } from "./lib/env.ts";
 export type { Environment, EnvSource } from "./lib/env.ts";
 
 export { option } from "./lib/option.ts";
+export { multiple } from "./lib/multiple.ts";
 
 export { param, schema } from "./lib/param.ts";
 export type { Param } from "./lib/param.ts";
@@ -37,6 +38,8 @@ export { executable, route, routes, version } from "./lib/route.ts";
 export type { RouteZero } from "./lib/route.ts";
 
 export { toggle } from "./lib/toggle.ts";
+
+export { transform } from "./lib/transform.ts";
 
 export { withValues } from "./lib/values.ts";
 export type { ValueSource } from "./lib/values.ts";

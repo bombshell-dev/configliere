@@ -1,10 +1,10 @@
-import { type Param, param } from "./param.ts";
+import { type AnyParam, type Param, param, type ParamModel } from "./param.ts";
 import { dasherize } from "./dasherize.ts";
 import {
   brand,
   type Check,
   type Fold,
-  type ParamElement,
+  type ModelElement,
   type Unary,
 } from "./pipeline.ts";
 import { cli } from "./read.ts";
@@ -15,22 +15,31 @@ export function option<
   const E extends readonly Unary[],
 >(
   named: Definition<N>,
-  ...elements: E & Check<Param<N, unknown>, E>
-): ElementOf<N, Fold<Param<N, unknown>, E>> {
+  ...elements: E & Check<Zero<N>, E>
+): ElementOf<N, Fold<Zero<N>, E>> {
   const added = elements.reduce<unknown>(
     (value, element) => element(value as never),
     param(named, cli([`--${dasherize(named.name)}`])),
-  ) as Param<string, unknown>;
+  ) as AnyParam;
 
-  return brand<ElementOf<N, Fold<Param<N, unknown>, E>>>(
+  return brand<ElementOf<N, Fold<Zero<N>, E>>>(
     (route: AnyRoute) => {
       let phases = [...route.phases];
       let phase = phases.pop()!;
       phases.push({
         ...phase,
-        params: {
-          ...phase.params,
-          [added.name]: added,
+        model: {
+          params: {
+            ...phase.model.params,
+            [added.name]: added,
+          },
+          steps: phase.model.steps.concat((current, bindings) => ({
+            ok: true,
+            value: {
+              ...current,
+              [added.name]: bindings[added.name],
+            },
+          })),
         },
       });
       return {
@@ -41,8 +50,8 @@ export function option<
   );
 }
 
-type ValueOf<P> = P extends Param<string, infer T> ? T : never;
+type Zero<N extends string> = Param<N, unknown, "one">;
 
-type ElementOf<N extends string, P> = P extends Param<N, unknown>
-  ? ParamElement<N, ValueOf<P>>
+type ElementOf<N extends string, P> = P extends
+  Param<N, infer Model, infer _Cardinality> ? ModelElement<ParamModel<N, Model>>
   : never;

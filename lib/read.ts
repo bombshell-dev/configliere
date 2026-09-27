@@ -1,5 +1,5 @@
 import type { Maybe } from "./maybe.ts";
-import type { Param } from "./param.ts";
+import type { AnyParam } from "./param.ts";
 import { brand, type IdentityElement } from "./pipeline.ts";
 import type { Result } from "./result.ts";
 import type { Flag, Setter, Word } from "./tokenize.ts";
@@ -32,7 +32,7 @@ export interface CLIOptions {
 export function cli(
   names: readonly string[],
   options: CLIOptions = {},
-): IdentityElement<Param<string, unknown>> {
+): IdentityElement<AnyParam> {
   const read: ReadCLI = (tokens) => {
     if (options.switch) {
       let s = tokens.claimOne((t): t is Flag => {
@@ -103,8 +103,8 @@ export function cli(
     return nothing(tokens);
   };
 
-  return brand<IdentityElement<Param<string, unknown>>>(
-    (param: Param<string, unknown>) => ({
+  return brand<IdentityElement<AnyParam>>(
+    (param: AnyParam) => ({
       ...param,
       cli: {
         read,

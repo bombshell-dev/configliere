@@ -1,5 +1,5 @@
 import type { Maybe } from "./maybe.ts";
-import type { Param } from "./param.ts";
+import type { AnyParam } from "./param.ts";
 import { brand, type IdentityElement } from "./pipeline.ts";
 import type { AnyRoute, RoutePath } from "./types.ts";
 
@@ -28,9 +28,9 @@ export interface EnvClaimOptions {
 
 export function env(
   key: string,
-): IdentityElement<Param<string, unknown>> {
-  return brand<IdentityElement<Param<string, unknown>>>(
-    (param: Param<string, unknown>) => ({ ...param, env: key }),
+): IdentityElement<AnyParam> {
+  return brand<IdentityElement<AnyParam>>(
+    (param: AnyParam) => ({ ...param, env: key }),
   );
 }
 

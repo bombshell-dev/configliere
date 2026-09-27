@@ -1,11 +1,11 @@
-import type { Maybe } from "./maybe.ts";
-import type { Param } from "./param.ts";
+import { Just, type Maybe } from "./maybe.ts";
+import type { AnyParam, Param } from "./param.ts";
 import type { CLIRead, Symbol } from "./read.ts";
 import type { Rest } from "./rest.ts";
 import type { Result } from "./result.ts";
 import type { Word } from "./tokenize.ts";
 import type { TokenInput, Tokenizer, TokenRange } from "./tokenizer.ts";
-import type { AnyPhase, Issue, Path } from "./types.ts";
+import type { AnyPhase, Issue, OutputOf, Path } from "./types.ts";
 
 export interface Binding<T> {
   readonly rest: Rest;
@@ -24,20 +24,20 @@ export interface PhaseSegment {
   readonly path: Path;
 }
 
-export function fromCLI<const K extends string, T>(options: {
-  readonly param: Param<K, T>;
+export function fromCLI<P extends Param<string, unknown, "one">>(options: {
+  readonly param: P;
   readonly view: TokenInput<Symbol>;
   readonly rest: Rest;
-}): Maybe<Binding<T>> {
+}): Maybe<Binding<OutputOf<P["schema"]>>> {
   let { param, view, rest } = options;
   return fromRead(param, param.cli.read(view), rest);
 }
 
-export function fromValues<const K extends string, T>(options: {
-  readonly param: Param<K, T>;
+export function fromValues<P extends AnyParam>(options: {
+  readonly param: P;
   readonly route: Path;
   readonly rest: Rest;
-}): Maybe<Binding<T>> {
+}): Maybe<Binding<OutputOf<P["schema"]>>> {
   let { param, route, rest } = options;
   let claim = rest.values.claim({
     route,
@@ -60,11 +60,11 @@ export function fromValues<const K extends string, T>(options: {
   };
 }
 
-export function fromEnv<const K extends string, T>(options: {
-  readonly param: Param<K, T>;
+export function fromEnv<P extends AnyParam>(options: {
+  readonly param: P;
   readonly route: Path;
   readonly rest: Rest;
-}): Maybe<Binding<T>> {
+}): Maybe<Binding<OutputOf<P["schema"]>>> {
   let { param, route, rest } = options;
   let claim = rest.envs.claim({
     route,
@@ -78,6 +78,10 @@ export function fromEnv<const K extends string, T>(options: {
 
   let value = claim.result.value.value;
 
+  let candidates = param.cardinality === "one"
+    ? param.decode(value)
+    : param.decode([value]);
+
   return {
     exists: true,
     value: {
@@ -85,7 +89,7 @@ export function fromEnv<const K extends string, T>(options: {
         ...rest,
         envs: claim.rest,
       },
-      result: decode(param, value, param.decode(value), [param.name]),
+      result: decode(param, value, candidates, [param.name]),
     },
   };
 }
@@ -97,12 +101,12 @@ export function bindPhase(options: {
 }): PhaseBinding {
   let { phase, segment } = options;
   let rest = options.rest;
-  let params = Object.values(phase.params) as Param<string, unknown>[];
+  let params = Object.values(phase.model.params) as AnyParam[];
   let pending = new Map(params.map((param) => [param.name, param]));
   let results = new Map<string, Result<unknown>>();
 
   function settle(
-    param: Param<string, unknown>,
+    param: AnyParam,
     binding: Binding<unknown>,
   ): void {
     rest = binding.rest;
@@ -111,7 +115,7 @@ export function bindPhase(options: {
   }
 
   function accept(
-    param: Param<string, unknown>,
+    param: AnyParam,
     attempt: Maybe<Binding<unknown>>,
   ): void {
     if (!attempt.exists) {
@@ -121,6 +125,8 @@ export function bindPhase(options: {
     settle(param, attempt.value);
   }
 
+  let captures = new Map<string, Capture>();
+
   // Every pending reader proposes a claim against the same immutable view.
   // Commit the proposal beginning earliest in argv, then recompute the view.
   // This lets `--port 9000` outrank a positional claim on `9000` without
@@ -128,7 +134,7 @@ export function bindPhase(options: {
   while (true) {
     let horizon = first(rest.tokens, segment.range);
     let offer: {
-      param: Param<string, unknown>;
+      param: AnyParam;
       read: CLIRead;
       index: number;
     } | undefined;
@@ -154,7 +160,56 @@ export function bindPhase(options: {
       break;
     }
 
+    if (offer.param.cardinality === "many") {
+      rest = {
+        ...rest,
+        tokens: offer.read.claim.rest,
+      };
+
+      let current = captures.get(offer.param.name) ?? {
+        param: offer.param,
+        values: [],
+        issues: [],
+        failed: false,
+      };
+
+      current.issues.push(...offer.read.result.issues ?? []);
+
+      if (offer.read.result.ok && offer.read.result.value.exists) {
+        current.values.push(offer.read.result.value.value);
+      } else {
+        current.failed = true;
+      }
+      captures.set(offer.param.name, current);
+
+      continue;
+    }
+
     accept(offer.param, fromRead(offer.param, offer.read, rest));
+  }
+
+  // deal wil all multiple
+  for (let capture of captures.values()) {
+    if (capture.failed) {
+      settle(capture.param, {
+        rest,
+        result: { ok: false, issues: capture.issues },
+      });
+    } else {
+      let values = capture.values;
+
+      let candidates: Maybe<unknown[]>[] = values.every(
+          (value): value is string => typeof value === "string",
+        )
+        ? capture.param.decode(values)
+        : [Just(values)];
+
+      let result = merge(
+        decode(capture.param, values, candidates, [capture.param.name]),
+        capture.issues,
+      );
+      settle(capture.param, { result, rest });
+    }
   }
 
   // Address sources have stable visibility once the route is known. They are
@@ -179,7 +234,7 @@ export function bindPhase(options: {
     results.set(param.name, validate(param, undefined, [param.name]));
   }
 
-  let model: Record<string, unknown> = {};
+  let bindings: Record<string, unknown> = {};
   let issues: Issue[] = [];
   let valid = true;
 
@@ -188,22 +243,33 @@ export function bindPhase(options: {
   for (let param of params) {
     let result = results.get(param.name)!;
     issues.push(...result.issues ?? []);
-
     if (result.ok) {
-      model[param.name] = result.value;
+      bindings[param.name] = result.value;
     } else {
       valid = false;
+    }
+  }
+
+  let model = {};
+  for (let step of phase.model.steps) {
+    let result = step(model, bindings);
+    if (!result.ok) {
+      valid = false;
+      issues.push(...result.issues);
+      break;
+    } else {
+      model = result.value;
     }
   }
 
   return { rest, model, issues, valid };
 }
 
-function fromRead<T>(
-  param: Param<string, T>,
+function fromRead<P extends Param<string, unknown, "one">>(
+  param: P,
   read: CLIRead,
   rest: Rest,
-): Maybe<Binding<T>> {
+): Maybe<Binding<OutputOf<P["schema"]>>> {
   let path = [param.name];
 
   if (!read.result.ok) {
@@ -224,7 +290,10 @@ function fromRead<T>(
   }
 
   let value = read.result.value.value;
-  let candidates = typeof value === "string" ? param.decode(value) : [value];
+
+  let candidates = typeof value === "string"
+    ? param.decode(value)
+    : [Just(value)];
   let result = merge(
     decode(param, value, candidates, path),
     read.result.issues,
@@ -242,12 +311,12 @@ function fromRead<T>(
   };
 }
 
-function decode<T>(
-  param: Param<string, T>,
+function decode<P extends AnyParam>(
+  param: P,
   value: unknown,
-  candidates: unknown[],
+  candidates: Maybe<unknown>[],
   path: string[],
-): Result<T> {
+): Result<OutputOf<P["schema"]>> {
   if (candidates.length === 0) {
     return {
       ok: false,
@@ -260,7 +329,11 @@ function decode<T>(
 
   let issues: readonly Issue[] | undefined;
 
-  for (let candidate of candidates) {
+  let values = candidates.flatMap((candidate) =>
+    candidate.exists ? [candidate.value] : []
+  );
+
+  for (let candidate of values) {
     let result = validate(param, candidate, path);
     if (result.ok) {
       return result;
@@ -274,11 +347,11 @@ function decode<T>(
   };
 }
 
-function validate<T>(
-  param: Param<string, T>,
+function validate<P extends AnyParam>(
+  param: P,
   value: unknown,
   path: string[],
-): Result<T> {
+): Result<OutputOf<P["schema"]>> {
   let validated = param.schema["~standard"].validate(value);
   if (validated instanceof Promise) {
     return {
@@ -338,4 +411,11 @@ function earliest(tokens: readonly Symbol[]): number {
   }
 
   return first;
+}
+
+interface Capture {
+  param: Param<string, unknown, "many">;
+  values: (string | boolean)[];
+  issues: Issue[];
+  failed: boolean;
 }

@@ -5,7 +5,7 @@ import { type Binding, bindPhase, fromCLI } from "../lib/bind.ts";
 import { name } from "../lib/definition.ts";
 import { Envs } from "../lib/env.ts";
 import type { Maybe } from "../lib/maybe.ts";
-import { type Param, param, schema } from "../lib/param.ts";
+import { type AnyParam, param, schema } from "../lib/param.ts";
 import { cli, type Symbol } from "../lib/read.ts";
 import type { Rest } from "../lib/rest.ts";
 import { tokenize } from "../lib/tokenize.ts";
@@ -279,9 +279,22 @@ function state(argv: string[]): Rest {
   };
 }
 
-function phase(params: Record<string, Param<string, unknown>>) {
+function phase(params: Record<string, AnyParam>) {
   return {
-    params,
+    model: {
+      params,
+      steps: Object.keys(params).map((name) =>
+      (
+        current: object,
+        bindings: Record<string, unknown>,
+      ) => ({
+        ok: true as const,
+        value: {
+          ...current,
+          [name]: bindings[name],
+        },
+      })),
+    },
     routes: [],
     values: [],
     envs: [],
