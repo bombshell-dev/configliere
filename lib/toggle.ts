@@ -107,7 +107,7 @@ function reader(name: string): ReadCLI {
 const bool: Schema<boolean> = {
   "~standard": {
     version: 1,
-    vendor: "configliere",
+    vendor: "@bomb.sh/router",
     validate(value) {
       return typeof value === "undefined"
         ? { value: false }

@@ -1,13 +1,13 @@
-# Configliere
+# @bomb.sh/router
 
 **A statically typed entry-point router for command-line applications.**
 
-An argument parser tells you what the user typed. Configliere tells you where
-and how they intend to enter your program. For execution, it marshals a
+An argument parser tells you what the user typed. `@bomb.sh/router` tells you
+where and how they intend to enter your program. For execution, it binds a
 validated, statically typed model for that entry point.
 
-Configliere matches input to an intent: a method at an application-relative
-route, such as:
+`@bomb.sh/router` matches input to an intent: a method at an
+application-relative route, such as:
 
 ```text
 HELP    /
@@ -20,19 +20,16 @@ EXECUTE /database/clean
 Every reachable intent appears in the result type. Narrow `method` and `route`,
 and TypeScript knows the exact model available at that entry point.
 
-Configliere is not a CLI framework. It does not own handlers, effects, output,
-or process lifetime. It is not a CLI parser whose product is a bag of flags. Its
-product is a typed intent; your application decides what that intent does.
-
-```text
-input → bind and expand phases → resolve route + method → intent
-```
+`@bomb.sh/router` is not a CLI framework. It does not own handlers, effects,
+output, or process lifetime. It is not a CLI parser whose product is a bag of
+flags. Its product is a typed intent; your application decides what that intent
+does.
 
 ## Define every way into the program
 
-`route()` declares an address. `command()` declares an executable route. Every
-route supports help; version and execution exist only where they are explicitly
-added.
+`route()` declares an address, and every `command()` is just an address that
+declares an intent to execute. Every route supports help, whereas version and
+execution exist only where they are explicitly added.
 
 Definitions are immutable composition pipelines, not handler registrations:
 
@@ -47,7 +44,7 @@ import {
   schema,
   toggle,
   version,
-} from "@frontside/configliere";
+} from "@bomb.sh/router";
 import * as z from "zod";
 
 export const app = command(
@@ -92,12 +89,7 @@ can stay flat even when the route tree is deep:
 
 ```ts
 import process from "node:process";
-import {
-  parse,
-  printErrors,
-  printHelp,
-  printVersion,
-} from "@frontside/configliere";
+import { parse, printErrors, printHelp, printVersion } from "@bomb.sh/router";
 import { app } from "./app.ts";
 
 const result = parse(app, { argv: process.argv.slice(2) });
@@ -152,14 +144,14 @@ An execute intent has two views of configuration:
 | `simulacrum serve --port nope`        | `unprocessable-content`; invalid data never reaches the application |
 
 Command literals are routing tokens, not positional arguments. As route segments
-become discoverable, Configliere scopes parameter binding to the segment that
-owns each token. This makes identical option names on parent and child routes
-unambiguous.
+become discoverable, `@bomb.sh/router` scopes parameter binding to the segment
+that owns each token. This makes identical option names on parent and child
+routes unambiguous.
 
-## Marshal configuration into the route
+## Bind route parameters from multiple sources
 
-CLI arguments are only one source. Configliere can marshal JavaScript values and
-flat environment records into the same route-local models:
+CLI arguments are only one source. `@bomb.sh/router` can bind JavaScript values
+and flat environment records onto the same route-local models:
 
 ```ts
 const result = parse(app, {
@@ -190,8 +182,8 @@ CLI → environment → JavaScript values → schema default
 ## Pause without surrendering the type system
 
 Sometimes the route cannot be fully configured, or even fully discovered, until
-the application performs I/O. Configliere can pause at a typed checkpoint and
-resume with the result.
+the application performs I/O. `@bomb.sh/router` can pause at a typed checkpoint
+and resume with the result.
 
 Dynamic phases serve two common cases:
 
@@ -206,9 +198,9 @@ exact type of what parsing can produce next.
 ### Help and version cross checkpoints
 
 `--help` and `--version` request methods; they do not settle an intent or bypass
-parsing. Configliere cannot produce either intent until it knows the deepest
-selected route. A dynamic phase may introduce that route, its options, or its
-version.
+parsing. `@bomb.sh/router` cannot produce either intent until it knows the
+deepest selected route. A dynamic phase may introduce that route, its options,
+or its version.
 
 The driver must therefore resume every increment until parsing returns an
 intent—even when the arguments contain `--help` or `--version`. This applies
@@ -246,7 +238,7 @@ import {
   schema,
   type ValueSource,
   version,
-} from "@frontside/configliere";
+} from "@bomb.sh/router";
 import * as z from "zod";
 
 const app = command(

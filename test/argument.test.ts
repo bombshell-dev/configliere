@@ -12,7 +12,7 @@ import {
   routes,
   schema,
   toggle,
-} from "@frontside/configliere";
+} from "@bomb.sh/router";
 import { dynamic } from "../lib/dynamic.ts";
 
 describe("argument()", () => {

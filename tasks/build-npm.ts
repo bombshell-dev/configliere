@@ -24,17 +24,17 @@ await build({
   },
   package: {
     // package.json properties
-    name: "configliere",
+    name: "@bomb.sh/router",
     version,
     description: "Configuration for programs",
     license: "MIT",
-    author: "engineering@frontside.com",
+    author: "Bombshell Authors (https://github.com/bombshell-dev)",
     repository: {
       type: "git",
-      url: "git+https://github.com/thefrontside/configliere.git",
+      url: "git+https://github.com/bombshell-dev/router.git",
     },
     bugs: {
-      url: "https://github.com/thefrontside/configliere/issues",
+      url: "https://github.com/bombshell-dev/router/issues",
     },
     engines: {
       node: ">= 16",
