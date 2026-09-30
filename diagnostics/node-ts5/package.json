@@ -1,5 +1,5 @@
 {
-  "name": "configliere-node-ts5-diagnostics",
+  "name": "@bomb.sh/router-node-ts5-diagnostics",
   "private": true,
   "type": "module",
   "scripts": {

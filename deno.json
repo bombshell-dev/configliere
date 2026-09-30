@@ -1,8 +1,7 @@
 {
-  "name": "@frontside/configliere",
+  "name": "@bomb.sh/router",
   "exports": "./mod.ts",
   "license": "MIT",
-  "publish": { "include": ["lib", "mod.ts", "README.md", "LICENSE.md"] },
   "imports": {
     "@std/expect": "jsr:@std/expect@^1.0.19",
     "@std/testing/bdd": "jsr:@std/testing@^1.0.19/bdd",
@@ -16,7 +15,6 @@
   },
   "tasks": {
     "test": "deno test",
-    "build:npm": "deno run -A tasks/build-npm.ts",
-    "build:jsr": "deno run -A tasks/build-jsr.ts"
+    "build:npm": "deno run -A tasks/build-npm.ts"
   }
 }

@@ -1,13 +1,6 @@
-# Configliere
+# @bomb.sh/router
 
 Configuration for programs.
-
-## Current state
-
-Configliere is undergoing a ground-up rebuild. No implementation architecture is
-established yet. Design from the bottom up with small API sketches, exact type
-expectations, and tests before implementation. Do not carry architectural
-assumptions forward from pre-rebuild history.
 
 ## Design references
 
@@ -44,10 +37,10 @@ Strongly prefer one-word variable and function names (e.g. `dir` not `tmpDir`,
 ### Runtime and tooling
 
 - **Runtime**: Deno
-- **Registry**: JSR (`@frontside/configliere`)
+- **Registry**: npm (`@bomb.sh/router`)
 - **Linting**: `deno lint` (excludes `prefer-const`)
 - **Testing**: `deno task test`
-- **Build**: `deno task build:npm` (dnt) and `deno task build:jsr`
+- **Build**: `deno task build:npm` (dnt)
 
 ### Dependencies
 

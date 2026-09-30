@@ -1,4 +1,4 @@
-# Configliere invariants
+# @bomb.sh/router invariants
 
 These principles are drawn from the current rebuild and earlier design
 transcripts. Current decisions take precedence over superseded architectures.

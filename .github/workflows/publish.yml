@@ -10,27 +10,6 @@ permissions:
   id-token: write
 
 jobs:
-  verify-jsr:
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout
-        uses: actions/checkout@v4
-
-      - name: setup deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Get Version
-        id: vars
-        run: echo ::set-output name=version::$(echo ${{github.ref_name}} | sed 's/^v//')
-
-      - name: Build JSR
-        run: deno task build:jsr ${{steps.vars.outputs.version}}
-
-      - name: dry run publish
-        run: npx jsr publish --dry-run --allow-dirty --token=${{secrets.JSR_TOKEN}}
-
   verify-npm:
     runs-on: ubuntu-latest
     steps:
@@ -55,7 +34,7 @@ jobs:
         run: deno task build:npm ${{steps.vars.outputs.version}}
 
       - name: dry run publish
-        run: npm publish --dry-run --tag=verify
+        run: npm publish --dry-run --access=public --tag=verify
         working-directory: ./build/npm
 
       - name: upload build
@@ -65,7 +44,7 @@ jobs:
           path: ./build/npm
 
   publish-npm:
-    needs: [verify-jsr, verify-npm]
+    needs: verify-npm
     runs-on: ubuntu-latest
 
     steps:
@@ -83,26 +62,3 @@ jobs:
       - name: Publish NPM
         run: npm publish --access=public --tag=latest
         working-directory: ./build/npm
-
-  publish-jsr:
-    needs: [verify-jsr, verify-npm]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: checkout
-        uses: actions/checkout@v4
-
-      - name: setup deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Get Version
-        id: vars
-        run: echo ::set-output name=version::$(echo ${{github.ref_name}} | sed 's/^v//')
-
-      - name: Build JSR
-        run: deno task build:jsr ${{steps.vars.outputs.version}}
-
-      - name: Publish JSR
-        run: npx jsr publish --allow-dirty --token=${{secrets.JSR_TOKEN}}

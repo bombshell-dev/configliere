@@ -85,7 +85,7 @@ interface SchemaTransform<Output> extends Transform {
 const unknown: Schema<unknown> = {
   "~standard": {
     version: 1,
-    vendor: "configliere",
+    vendor: "@bomb.sh/router",
     validate: (value) => ({ value }),
   },
 };
