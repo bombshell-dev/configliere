@@ -45,6 +45,7 @@ jobs:
         with:
           name: npm-build
           path: ./build/npm
+          include-hidden-files: true
 
   stage-npm:
     needs: verify-npm
