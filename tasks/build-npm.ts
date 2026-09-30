@@ -15,12 +15,14 @@ await build({
   shims: {
     deno: false,
   },
+  scriptModule: false,
+  declarationMap: false,
   test: false,
   typeCheck: false,
   compilerOptions: {
     lib: ["ESNext"],
-    target: "ES2020",
-    sourceMap: true,
+    target: "ES2022",
+    sourceMap: false,
   },
   package: {
     // package.json properties
@@ -37,7 +39,7 @@ await build({
       url: "https://github.com/bombshell-dev/router/issues",
     },
     engines: {
-      node: ">= 16",
+      node: ">= 20",
     },
     sideEffects: false,
   },
