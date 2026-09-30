@@ -1,4 +1,4 @@
-name: Publish
+name: Stage
 
 on:
   push:
@@ -30,11 +30,14 @@ jobs:
         with:
           node-version: 24
 
+      - name: Setup npm with staged publishing
+        run: npm install --global npm@11.21.0
+
       - name: Build NPM
         run: deno task build:npm ${{steps.vars.outputs.version}}
 
-      - name: dry run publish
-        run: npm publish --dry-run --access=public --tag=verify
+      - name: dry run staged publish
+        run: npm stage publish --dry-run --access=public --tag=verify
         working-directory: ./build/npm
 
       - name: upload build
@@ -43,7 +46,7 @@ jobs:
           name: npm-build
           path: ./build/npm
 
-  publish-npm:
+  stage-npm:
     needs: verify-npm
     runs-on: ubuntu-latest
 
@@ -53,12 +56,15 @@ jobs:
         with:
           node-version: 24
 
+      - name: Setup npm with staged publishing
+        run: npm install --global npm@11.21.0
+
       - name: download build
         uses: actions/download-artifact@v4
         with:
           name: npm-build
           path: ./build/npm
 
-      - name: Publish NPM
-        run: npm publish --access=public --tag=latest
+      - name: Stage NPM publish
+        run: npm stage publish --access=public --tag=latest
         working-directory: ./build/npm
